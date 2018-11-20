@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
+import math
 
 label_font = {'family': 'Times New Roman',
         'color':  'black',
@@ -82,8 +83,8 @@ def plot_h2_coldens_compare(path_list, label_list):
     ax = fig.add_subplot(111)
     
     for i in range(len(path_list)):
-        path = path_list[i] + "coldens_H2.txt"
-        data_v, data_j, data_en, data_cd = np.loadtxt(path, usecols=(1, 2, 4, 5), comments='!', unpack=True)
+        fname = path_list[i] + "coldens_H2.txt"
+        data_v, data_j, data_en, data_cd = np.loadtxt(fname, usecols=(1, 2, 4, 5), comments='!', unpack=True)
         
         en = []
         cd = []
@@ -106,6 +107,63 @@ def plot_h2_coldens_compare(path_list, label_list):
     plt.legend()
     plt.show()
 
+
+def plot_h2_coldens_observations(path_theory, label_theory):
+    fig = plt.figure(figsize=(7.,7.))
+    ax = fig.add_subplot(111)
+
+    data_en = []
+    data_cd = []
+    fname = "../../../observations/Neufeld 2007 H2 column densities.txt"
+    data1_j, data_en, data_cd = np.loadtxt(fname, usecols=(0, 1, 5), comments='!', unpack=True)  
+    for i in range(len(data_cd)):
+        data_cd[i] = math.pow(10., data_cd[i])/(2.*data1_j[i] + 1.)
+        if (data1_j[i]%2 == 1):
+            data_cd[i] /= 3.
+
+    ax.scatter(data_en, data_cd, s=45, facecolors='none', marker='o', color='blue', label='Neufeld et al. 2007')
+    
+    data_en = []
+    data_cd = []
+    fname = "../../../observations/Shinn 2011 IC443 H2 column densities B C G.txt"
+    data2_v, data2_j, data_en, data_cd = np.loadtxt(fname, usecols=(0, 1, 2, 5), comments='!', unpack=True)  
+    for i in range(len(data_cd)):
+        data_cd[i] = math.pow(10., data_cd[i])/(2.*data2_j[i] + 1)
+        if (data2_j[i]%2 == 1):
+            data_cd[i] /= 3.
+
+    ax.scatter(data_en, data_cd, s=45, facecolors='none', marker='o', color='red', label='Shinn et al. 2011')
+    
+    data_en = []
+    data_cd = []
+    fname = path_theory + "coldens_H2.txt"
+    data_v, data_j, data_en, data_cd = np.loadtxt(fname, usecols=(1, 2, 4, 5), comments='!', unpack=True)
+    
+    en = []
+    cd = []
+    for i in range(len(data_j)):
+        for k in range(len(data1_j)):
+            if (data_j[i] == data1_j[k] and data_v[i] == 0):
+                en += [data_en[i]]
+                cd += [data_cd[i]]
+
+        for k in range(len(data2_j)):
+            if (data_j[i] == data2_j[k] and data_v[i] == data2_v[k]):
+                en += [data_en[i]]
+                cd += [data_cd[i]]
+
+    ax.scatter(en, cd, s=45, facecolors='none', marker='v', color='black', label = label_theory)       
+    ax.set_yscale('log')
+    ax.set_ylim(1.e+10, 1.e+21)
+    ax.set_xlim(0., 20000.)
+
+    ax.set_xlabel('Level energy, cm$^{-1}$', fontdict=label_font)
+    ax.set_ylabel('Column densities, N/g', fontdict=label_font)
+    ax.tick_params(labelsize=14)
+
+    plt.title('H$_2$ level column densities', fontdict=label_font)
+    plt.legend()
+    plt.show()
 
 #
 # path = "../../../output_data_2e4/shock_30_h2-h_lique-bossion/"
@@ -167,6 +225,8 @@ path_list += ['../../../output_data_2e4/shock_30_h2-h_lique-bossion/']
 path_list += ['../../../output_data_2e4/shock_30_h2-h_wan/']
 
 label_list = []
-label_list += ["Flower"]
-label_list += ["Wan"]
-plot_h2_coldens_compare(path_list, label_list)
+label_list += ['Flower']
+label_list += ['Wan']
+#plot_h2_coldens_compare(path_list, label_list) 
+
+plot_h2_coldens_observations('../../../output_data_2e4/shock_30_h2-h_lique-bossion_cr1000/', '')
