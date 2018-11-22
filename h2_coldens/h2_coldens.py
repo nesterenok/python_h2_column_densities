@@ -14,42 +14,29 @@ def plot_h2_coldens(path):
     path += "coldens_H2.txt"
     data_v, data_j, data_en, data_cd = np.loadtxt(path, usecols=(1, 2, 4, 5), comments='!', unpack=True)
     
-    en_v0 = []
-    cd_v0 = []
-    en_v1 = []
-    cd_v1 = []
-    en_v2 = []
-    cd_v2 = []
-    en_v3 = []
-    cd_v3 = []
-
-    i = 0
-    for v in data_v:
-        if v == 0 and data_j[i] != 0 and data_j[i] != 1:
-            en_v0 += [data_en[i]]
-            cd_v0 += [data_cd[i]]
-        elif v == 1:
-            en_v1 += [data_en[i]]
-            cd_v1 += [data_cd[i]]
-        elif v == 2:
-            en_v2 += [data_en[i]]
-            cd_v2 += [data_cd[i]]
-        elif v == 3:
-            en_v3 += [data_en[i]]
-            cd_v3 += [data_cd[i]]
-        i += 1
-
-    fig = plt.figure(figsize=(5,5))
+    marker_list = ['o','^', 'v', 's']
+    color_list = ['black', 'red', 'blue', 'green']
+    label_list = ['v=0', 'v=1', 'v=2', 'v=3', 'v=4']
+    
+    fig = plt.figure(figsize=(7.,7.))
     ax = fig.add_subplot(111)
-    ax.scatter(en_v0, cd_v0, s=10, marker='o', color='black', label='v = 0')
-    ax.scatter(en_v1, cd_v1, s=15, marker='^', color='red', label='v = 1')
-    ax.scatter(en_v2, cd_v2, s=30, marker='x', color='green', label='v = 2')
-    ax.scatter(en_v3, cd_v3, s=30, marker='+', color='blue', label='v = 3')
-
+    
+    for v in range(0,4):
+        en = []
+        cd = []
+        for k in range(len(data_v)):
+            if (v == data_v[k] and v != 0) or (v == 0 and data_v[k] == 0 and data_j[k] != 0 and data_j[k] != 1):
+                en += [data_en[k]]
+                cd += [data_cd[k]]
+        ax.scatter(en, cd, s=45, facecolors='none', marker=marker_list[v], color=color_list[v], label=label_list[v])
+         
     ax.set_yscale('log')
-    ax.set_xlabel('Level energy, cm^{-1}', fontdict=label_font)
+    ax.set_ylim(1.e+8, 1.e+21)
+    ax.set_xlim(0., 20000.)
+
+    ax.set_xlabel('Level energy, cm$^{-1}$', fontdict=label_font)
     ax.set_ylabel('Column densities, N/g', fontdict=label_font)
-    ax.tick_params(labelsize=12)
+    ax.tick_params(labelsize=14)
 
     plt.title('H$_2$ level column densities', fontdict=label_font)
     plt.legend()
@@ -112,30 +99,40 @@ def plot_h2_coldens_observations(path_theory, label_theory):
     fig = plt.figure(figsize=(7.,7.))
     ax = fig.add_subplot(111)
 
-    data_en = []
-    data_cd = []
+    data_err = []
     fname = "../../../observations/Neufeld 2007 H2 column densities.txt"
     data1_j, data_en, data_cd = np.loadtxt(fname, usecols=(0, 1, 5), comments='!', unpack=True)  
     for i in range(len(data_cd)):
         data_cd[i] = math.pow(10., data_cd[i])/(2.*data1_j[i] + 1.)
         if (data1_j[i]%2 == 1):
             data_cd[i] /= 3.
+        data_err.append(data_cd[i]*0.25)
 
-    ax.scatter(data_en, data_cd, s=45, facecolors='none', marker='o', color='blue', label='Neufeld et al. 2007')
-    
-    data_en = []
-    data_cd = []
+    ax.errorbar(data_en, data_cd, yerr=data_err, fmt='o', ms=6, color='blue', mfc='none', label='Neufeld et al. 2007')
+     
     fname = "../../../observations/Shinn 2011 IC443 H2 column densities B C G.txt"
-    data2_v, data2_j, data_en, data_cd = np.loadtxt(fname, usecols=(0, 1, 2, 5), comments='!', unpack=True)  
+    data2_v, data2_j, data_en, data_cd, data_err = np.loadtxt(fname, usecols=(0, 1, 2, 5, 6), comments='!', unpack=True)  
     for i in range(len(data_cd)):
         data_cd[i] = math.pow(10., data_cd[i])/(2.*data2_j[i] + 1)
         if (data2_j[i]%2 == 1):
             data_cd[i] /= 3.
+        data_err[i] = (math.pow(10., data_err[i]) - 1.)*data_cd[i]
 
-    ax.scatter(data_en, data_cd, s=45, facecolors='none', marker='o', color='red', label='Shinn et al. 2011')
+    ax.errorbar(data_en, data_cd, yerr=data_err, fmt='o', ms=6, color='red', mfc='none', label='Shinn et al. 2011')
     
-    data_en = []
-    data_cd = []
+    fname = "../../../observations/Shinn 2011 IC443 H2 column densities B C G upper limits.txt"
+    data3_v, data3_j, data_en, data_cd, data_err = np.loadtxt(fname, usecols=(0, 1, 2, 5, 6), comments='!', unpack=True)  
+    
+    for i in range(len(data_cd)):
+        data_cd[i] = math.pow(10., data_cd[i])/(2.*data3_j[i] + 1)
+        if (data3_j[i]%2 == 1):
+            data_cd[i] /= 3.
+        data_err[i] = (math.pow(10., data_err[i]) - 1.)*data_cd[i]*2
+
+    uplims = np.empty(len(data_cd))
+    uplims.fill(1)
+    ax.errorbar(data_en, data_cd, yerr=data_err, fmt='o', ms=6, color='red', mfc='none', uplims=uplims)
+    
     fname = path_theory + "coldens_H2.txt"
     data_v, data_j, data_en, data_cd = np.loadtxt(fname, usecols=(1, 2, 4, 5), comments='!', unpack=True)
     
@@ -152,10 +149,15 @@ def plot_h2_coldens_observations(path_theory, label_theory):
                 en += [data_en[i]]
                 cd += [data_cd[i]]
 
+        for k in range(len(data3_j)):
+            if (data_j[i] == data3_j[k] and data_v[i] == data3_v[k]):
+                en += [data_en[i]]
+                cd += [data_cd[i]]
+
     ax.scatter(en, cd, s=45, facecolors='none', marker='v', color='black', label = label_theory)       
     ax.set_yscale('log')
     ax.set_ylim(1.e+10, 1.e+21)
-    ax.set_xlim(0., 20000.)
+    ax.set_xlim(0., 17000.)
 
     ax.set_xlabel('Level energy, cm$^{-1}$', fontdict=label_font)
     ax.set_ylabel('Column densities, N/g', fontdict=label_font)
@@ -166,8 +168,8 @@ def plot_h2_coldens_observations(path_theory, label_theory):
     plt.show()
 
 #
-# path = "../../../output_data_2e4/shock_30_h2-h_lique-bossion/"
-# plot_h2_coldens(path)
+path = "../../../output_data_2e3/shock_20_h2-h_lique-bossion/"
+#plot_h2_coldens(path)
 
 # path = "../../../output_data_2e4/shock_30_h2-h_lique-bossion/"
 # plot_h2_dissociation(path)
@@ -229,4 +231,4 @@ label_list += ['Flower']
 label_list += ['Wan']
 #plot_h2_coldens_compare(path_list, label_list) 
 
-plot_h2_coldens_observations('../../../output_data_2e4/shock_30_h2-h_lique-bossion_cr1000/', '')
+plot_h2_coldens_observations('../../../output_data_2e4/shock_30_h2-h_lique-bossion_cr300/', '')
