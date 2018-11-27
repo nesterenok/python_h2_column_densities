@@ -4,6 +4,9 @@ import numpy as np
 import csv
 import math
 
+from scipy.constants import Boltzmann
+from scipy.optimize import curve_fit
+
 label_font = {'family': 'Times New Roman',
         'color':  'black',
         'weight': 'normal',
@@ -167,9 +170,58 @@ def plot_h2_coldens_observations(path_theory, label_theory):
     plt.legend()
     plt.show()
 
-#
-path = "../../../output_data_2e3/shock_20_h2-h_lique-bossion/"
+def ExpFunction(x, a, b, c):
+    return a * np.exp(-b * x) + c
+
+def HydrogenOrthoParaCalc(pathList):
+    jLowLim = 2
+    jUpLim = 8 # must be even
+    
+    for i in range(len(pathList)):
+        fName = pathList[i] + "coldens_H2.txt"
+        fDataVibrQ, fDataJ, fDataEn, fDataColDens = np.loadtxt(fName, usecols=(1, 2, 4, 5), comments='!', unpack=True)
+        
+        enList = []
+        colDensList = []
+        jList = []
+        
+        for k in range(len(fDataJ)):
+            if (fDataJ[k] >= jLowLim and fDataJ[k] <= jUpLim and fDataVibrQ[k] == 0):
+                jList += [fDataJ[k]]
+                enList += [fDataEn[k]]
+                colDensList += [fDataColDens[k]]
+        
+        orthoParaRatioList = []
+        for k in range(len(jList)):
+            if (jList[k]%2 == 1):
+                rotTemp = (enList[k-1] - enList[k+1])/(Boltzmann* math.log(colDensList[k-1]/colDensList[k+1]))
+        
+                a = b = 0. 
+                for l in range(len(fDataJ)):
+                    if (fDataJ[l]%2 == 1):
+                        a += 3.*(2*fDataJ[l] + 1) *math.exp(-fDataEn[l]*1.4387770/rotTemp)
+                    else:
+                        b += (2*fDataJ[l] + 1) *math.exp(-fDataEn[l]*1.4387770/rotTemp)
+ 
+                orthoParaRatioList += [a/b *colDensList[k] \
+                    /math.exp( math.log(colDensList[k-1]) + (enList[k] - enList[k-1])*math.log(colDensList[k+1]/colDensList[k-1])/(enList[k+1] - enList[k-1]) )]
+        
+        orthoParaRatio = colDens = 0.
+        for k in range(len(orthoParaRatioList)):
+            orthoParaRatio += orthoParaRatioList[k] *(2*jList[2*k+1] + 1)*colDensList[2*k+1]
+            colDens += (2*jList[2*k+1] + 1)*colDensList[2*k+1]
+        
+        orthoParaRatio /= colDens   
+        OptimalParameters = np.polyfit(enList, np.log(colDensList), 1, w = np.sqrt(colDensList))
+        
+        print(-1.4387770/OptimalParameters[0], orthoParaRatio)
+
+
+
+
+path = "../../../output_data_1e4/shock_30_h2-h_lique-bossion/"
 #plot_h2_coldens(path)
+
 
 # path = "../../../output_data_2e4/shock_30_h2-h_lique-bossion/"
 # plot_h2_dissociation(path)
@@ -231,4 +283,23 @@ label_list += ['Flower']
 label_list += ['Wan']
 #plot_h2_coldens_compare(path_list, label_list) 
 
-plot_h2_coldens_observations('../../../output_data_2e4/shock_30_h2-h_lique-bossion_cr300/', '')
+path_list = []
+path_list += ["../../../output_data_1e4/shock_30_h2-h_lique-bossion_cr100/"]
+path_list += ["../../../output_data_1e4/shock_30_h2-h_lique-bossion_cr100_2b/"]
+path_list += ["../../../output_data_1e4/shock_30_h2-h_lique-bossion_cr100_05b/"]
+
+label_list = []
+label_list += ["b = 1"]
+label_list += ["b = 2"]
+label_list += ["b = 0.5"]
+
+#plot_h2_coldens_compare(path_list, label_list)
+
+#plot_h2_coldens_observations('../../../output_data_1e4/shock_30_h2-h_lique-bossion_cr100/', '')
+
+path_list = []
+path_list += ['../../../output_data_2e4/shock_20_h2-h_lique-bossion/']
+path_list += ['../../../output_data_2e4/shock_30_h2-h_lique-bossion/']
+path_list += ['../../../output_data_2e4/shock_45_h2-h_lique-bossion/']
+path_list += ['../../../output_data_2e4/shock_55_h2-h_lique-bossion/']
+HydrogenOrthoParaCalc(path_list)
